@@ -1,0 +1,15 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #2d2d2d;
+  color: white;
+  flex-direction: column;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
