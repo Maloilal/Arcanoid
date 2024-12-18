@@ -193,7 +193,7 @@ const Game = () => {
       }
     }
 
-    function ballHitBrick(brick) {
+    function ballHitBrick(ball, brick) {
       brick.disableBody(true, true);
       score += 10;
       scoreText.setText("Score: " + score);
@@ -218,7 +218,7 @@ const Game = () => {
       });
     }
 
-    function checkGameOver(down) {
+    function checkGameOver(body, up, down, left, right) {
       if (down) {
         gameOverText.setVisible(true);
         ball.setVelocity(0);
