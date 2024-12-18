@@ -54,13 +54,13 @@ const Game = () => {
       const ballGraphics = this.add.graphics();
       ballGraphics.fillStyle(0xff0000, 1);
       ballGraphics.fillCircle(10, 10, 10);
-      const ballTexture = ballGraphics.generateTexture("ballTexture", 20, 20);
+      ballGraphics.generateTexture("ballTexture", 20, 20);
       ballGraphics.destroy();
 
       const paddleGraphics = this.add.graphics();
       paddleGraphics.fillStyle(0x00ff00, 1);
       paddleGraphics.fillRect(0, 0, 100, 20);
-      const paddleTexture = paddleGraphics.generateTexture(
+      paddleGraphics.generateTexture(
         "paddleTexture",
         100,
         20,
@@ -120,7 +120,7 @@ const Game = () => {
       gameOverText.setOrigin(0.5);
       gameOverText.setVisible(false);
 
-      gamePauseText = this.add.text(400, 20, "Pause", {
+      gamePauseText = this.add.text(400, 300, "Pause", {
         fontSize: "64px",
         fill: "#fff",
       });
@@ -143,46 +143,57 @@ const Game = () => {
       this.physics.world.on("worldbounds", checkGameOver, this);
       ball.body.onWorldBounds = true;
     }
-    function update() {
-      if (!isPaused) {
-        if (cursors.left.isDown) {
-          paddle.setVelocityX(-500);
-        } else if (cursors.right.isDown) {
-          paddle.setVelocityX(500);
-        } else {
-          paddle.setVelocityX(0);
-        }
-      }
 
-      if (restartKey.isDown) {
-        restartGame(this);
+    function updatePuddleSpeed() {
+      if (isPaused) return;
+
+      if (cursors.left.isDown) {
+        paddle.setVelocityX(-500);
+        return;
       }
-      if (Phaser.Input.Keyboard.JustDown(gamePauseKey)) {
-        if (isPaused) {
-          this.physics.resume();
-          gamePauseText.setVisible(false);
-          isPaused = false;
-        } else {
-          this.physics.pause();
-          gamePauseText.setVisible(true);
-          isPaused = true;
-        }
+      
+      if (cursors.right.isDown) {
+        paddle.setVelocityX(500);
+        return;
       }
+      
+      paddle.setVelocityX(0);
+    }
+
+    function updatePauseState(scene) {
+      if (!Phaser.Input.Keyboard.JustDown(gamePauseKey)) return;
+
+      if (isPaused) {
+        scene.physics.resume();
+      } else {
+        scene.physics.pause();
+      }
+      
+      gamePauseText.setVisible(!isPaused);
+      isPaused = !isPaused;
+    }
+    
+    function update() {
+      updatePuddleSpeed();
+      updatePauseState(this);
+      restartGame(this);
     }
 
     function ballHitPaddle(ball, paddle) {
       let diff = 0;
+      
       if (ball.x < paddle.x) {
         diff = paddle.x - ball.x;
         ball.setVelocityX(-10 * diff);
-      } else if (ball.x > paddle.x) {
+      }
+      
+      if (ball.x > paddle.x) {
         diff = ball.x - paddle.x;
         ball.setVelocityX(10 * diff);
       }
-      console.log(diff);
     }
 
-    function ballHitBrick(ball, brick) {
+    function ballHitBrick(brick) {
       brick.disableBody(true, true);
       score += 10;
       scoreText.setText("Score: " + score);
@@ -201,13 +212,13 @@ const Game = () => {
       );
     }
 
-    function resetBricks(scene) {
+    function resetBricks() {
       bricks.children.iterate((brick) => {
         brick.enableBody(true, brick.x, brick.y, true, true);
       });
     }
 
-    function checkGameOver(body, up, down, left, right) {
+    function checkGameOver(down) {
       if (down) {
         gameOverText.setVisible(true);
         ball.setVelocity(0);
@@ -217,6 +228,8 @@ const Game = () => {
     }
 
     function restartGame(scene) {
+      if (isPaused || !restartKey.isDown) return;
+      
       score = 0;
       level = 1;
       scoreText.setText("Score: 0");
