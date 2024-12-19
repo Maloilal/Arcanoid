@@ -20,6 +20,8 @@ const Game = () => {
     const initialBallSpeed = 150;
     const ballSpeedIncrement = 50;
     let isPaused = false;
+    let isDragging = false;
+    let dragPointer = null;
 
     const config = {
       type: Phaser.AUTO,
@@ -60,11 +62,7 @@ const Game = () => {
       const paddleGraphics = this.add.graphics();
       paddleGraphics.fillStyle(0x00ff00, 1);
       paddleGraphics.fillRect(0, 0, 100, 20);
-      paddleGraphics.generateTexture(
-        "paddleTexture",
-        100,
-        20,
-      );
+      paddleGraphics.generateTexture("paddleTexture", 100, 20);
       paddleGraphics.destroy();
 
       createBrickTexture(this, "yellow_brick", 0xd8d839);
@@ -142,6 +140,33 @@ const Game = () => {
       this.physics.world.TILE_BIAS = 16;
       this.physics.world.on("worldbounds", checkGameOver, this);
       ball.body.onWorldBounds = true;
+
+      this.input.on("pointerdown", (pointer) => {
+        const withinPaddleBounds =
+          pointer.x >= paddle.x - paddle.displayWidth / 2 &&
+          pointer.x <= paddle.x + paddle.displayWidth / 2 &&
+          pointer.y >= paddle.y - paddle.displayHeight / 2 &&
+          pointer.y <= paddle.y + paddle.displayHeight / 2;
+
+        if (withinPaddleBounds) {
+          isDragging = true;
+          dragPointer = pointer;
+        }
+      });
+
+      this.input.on("pointerup", (pointer) => {
+        if (pointer === dragPointer) {
+          isDragging = false;
+          dragPointer = null;
+        }
+      });
+
+      this.input.on("pointerout", (pointer) => {
+        if (pointer === dragPointer) {
+          isDragging = false;
+          dragPointer = null;
+        }
+      });
     }
 
     function updatePuddleSpeed() {
@@ -151,13 +176,25 @@ const Game = () => {
         paddle.setVelocityX(-500);
         return;
       }
-      
+
       if (cursors.right.isDown) {
         paddle.setVelocityX(500);
         return;
       }
-      
+
       paddle.setVelocityX(0);
+    }
+
+    function updateMobilePuddleSpeed(scene) {
+      if (isPaused) return;
+      if (isDragging && dragPointer) {
+        paddle.x = Phaser.Math.Clamp(
+          scene.input.activePointer.x,
+          paddle.displayWidth / 2,
+          800 - paddle.displayWidth / 2,
+        );
+      }
+      return;
     }
 
     function updatePauseState(scene) {
@@ -168,25 +205,30 @@ const Game = () => {
       } else {
         scene.physics.pause();
       }
-      
+
       gamePauseText.setVisible(!isPaused);
       isPaused = !isPaused;
     }
-    
+
     function update() {
-      updatePuddleSpeed();
+      if (this.sys.game.device.input.touch) {
+        updateMobilePuddleSpeed(this);
+      } else {
+        updatePuddleSpeed();
+      }
+
       updatePauseState(this);
       restartGame(this);
     }
 
     function ballHitPaddle(ball, paddle) {
       let diff = 0;
-      
+
       if (ball.x < paddle.x) {
         diff = paddle.x - ball.x;
         ball.setVelocityX(-10 * diff);
       }
-      
+
       if (ball.x > paddle.x) {
         diff = ball.x - paddle.x;
         ball.setVelocityX(10 * diff);
@@ -229,7 +271,7 @@ const Game = () => {
 
     function restartGame(scene) {
       if (isPaused || !restartKey.isDown) return;
-      
+
       score = 0;
       level = 1;
       scoreText.setText("Score: 0");

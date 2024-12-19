@@ -4,7 +4,7 @@ import Game from "./components/Game";
 const App = () => {
   return (
     <div>
-      <h1>Арканоид на React и Phaser</h1>
+      <h1>Арканоид</h1>
       <Game />
     </div>
   );
